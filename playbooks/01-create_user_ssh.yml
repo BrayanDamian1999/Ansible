@@ -1,28 +1,40 @@
 ---
 # Playbook for creating a user and configuring SSH in Debian Distributions
-
-- name: Crear usuario con SSH
+- name: Crear multiples usuarios con SSH
   hosts: all
   become: yes
-  
+
   vars:
-    new_user: "ansible"
-    ssh_public_key_file: "~/.ssh/id_rsa.pub"
+    users:
+      - name: ansible
+        ssh_key: "~/.ssh/id_rsa.pub"
+      - name: devops
+        ssh_key: "~/.ssh/devops.pub"
+
     disable_password_auth: true
     allow_passwordless_sudo: true
-  
+
   tasks:
-    - name: Crear usuario
+    - name: Crear usuarios
       user:
-        name: "{{ new_user }}"
+        name: "{{ item.name }}"
         shell: /bin/bash
         create_home: yes
+      loop: "{{ users }}"
 
-    - name: Agregar clave SSH
+    - name: Agregar claves SSH
       authorized_key:
-        user: "{{ new_user }}"
+        user: "{{ item.name }}"
         state: present
-        key: "{{ lookup('file', ssh_public_key_file) }}"
+        key: "{{ lookup('file', item.ssh_key) }}"
+      loop: "{{ users }}"
+
+    - name: Agregar usuarios al grupo sudo
+      user:
+        name: "{{ item.name }}"
+        groups: sudo
+        append: yes
+      loop: "{{ users }}"
 
   handlers:
     - name: Restart SSH
