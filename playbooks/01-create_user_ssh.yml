@@ -1,0 +1,31 @@
+---
+# Playbook for creating a user and configuring SSH in Debian Distributions
+
+- name: Crear usuario con SSH
+  hosts: all
+  become: yes
+  
+  vars:
+    new_user: "ansible"
+    ssh_public_key_file: "~/.ssh/id_rsa.pub"
+    disable_password_auth: true
+    allow_passwordless_sudo: true
+  
+  tasks:
+    - name: Crear usuario
+      user:
+        name: "{{ new_user }}"
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Agregar clave SSH
+      authorized_key:
+        user: "{{ new_user }}"
+        state: present
+        key: "{{ lookup('file', ssh_public_key_file) }}"
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
